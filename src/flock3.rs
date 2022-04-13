@@ -1,7 +1,7 @@
 use crate::{utils, vector};
 use rand::Rng;
 
-const MAX_DZ: f32 = 0.5;
+// const MAX_DZ: f32 = 0.5;
 // const MAX_WIND: f32 = 3.0;
 // const MAX_ANGLE_CHANGE: f32 = 0.125 * std::f32::consts::PI;
 
@@ -14,11 +14,14 @@ fn random_vector3(min: f32, max: f32) -> vector::Vector3 {
     }
 }
 
-fn vertical_clamp(v: vector::Vector3) -> vector::Vector3 {
+fn vertical_clamp(v: vector::Vector3, max_dz: f32) -> vector::Vector3 {
     let l = v.len();
     if l == 0.0 {return v};
-    if v.z / l > MAX_DZ {return vector::Vector3::new(v.x, v.y, l*MAX_DZ)};
-    if v.z / l < -MAX_DZ {return vector::Vector3::new(v.x, v.y, -l*MAX_DZ)};
+    if v.z / l > max_dz {
+        return vector::Vector3::new(v.x, v.y, l * max_dz)
+    } else if v.z / l < -max_dz {
+        return vector::Vector3::new(v.x, v.y, -l * max_dz)
+    };
     v
 }
 
@@ -50,6 +53,7 @@ impl Flock {
         let mut new_boids = Vec::with_capacity(self.boids.len());
 
         self.wind += random_vector3(-0.5, 0.5);
+        vertical_clamp(self.wind, config.delta_z_max);
         self.wind.clamp(config.wind);
 
         for b in &self.boids {
@@ -90,7 +94,7 @@ impl Boid {
             config.separation * vs;
 
         v.clamp(config.velocity);
-        v = vertical_clamp(v);
+        v = vertical_clamp(v, config.delta_z_max);
 
         // let a = self.velocity.angle(v);
         // if a > MAX_ANGLE_CHANGE {

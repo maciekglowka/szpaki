@@ -30,5 +30,8 @@ pub struct Config {
     pub velocity: f32,
 
     #[clap(long, default_value_t = 0.2)]
-    pub wind: f32
+    pub wind: f32,
+
+    #[clap(long, default_value_t = 0.5)]
+    pub delta_z_max: f32
 }

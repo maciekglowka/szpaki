@@ -1,19 +1,18 @@
 use clap::Parser;
 use minifb;
 use std::env;
+use std::cmp::max;
 
 mod flock3;
 mod utils;
 mod vector;
 
-fn draw_boid(buffer: &mut Vec<u32>, config: &utils::Config, boid: &flock3::Boid) {
-    // if boid.position.x<2.0 || boid.position.y<2.0 || boid.position.x>=SIZE as f32 - 2.0 || boid.position.y>=SIZE as f32 - 2.0 {return;}
-    // buffer[boid.position.y as usize * SIZE + boid.position.x as usize] = u32::MAX;
-    // let mut d = boid.velocity;
-    // d.normalize();
-    // let head = boid.position + d;
-    // buffer[head.y as usize * SIZE + head.x as usize] = u32::MAX;
+fn put_pixel(buffer: &mut Vec<u32>, x: usize, y: usize, size: usize, value: u32) {
+    let idx = y as usize * size + x as usize;
+    buffer[idx] = max(buffer[idx], value);
+}
 
+fn draw_boid(buffer: &mut Vec<u32>, config: &utils::Config, boid: &flock3::Boid) {
     if  boid.position.x<2.0 || boid.position.z<2.0 || boid.position.y<0.0 ||
         boid.position.x>=config.size as f32 - 2.0 || boid.position.z>=config.size as f32 - 2.0
         {return;}
@@ -22,20 +21,27 @@ fn draw_boid(buffer: &mut Vec<u32>, config: &utils::Config, boid: &flock3::Boid)
     let gray = gray as u32;
     let col = (gray << 16) + (gray << 8) + gray;
 
-    buffer[boid.position.z as usize * config.size + boid.position.x as usize] = col;
+    put_pixel(buffer, boid.position.x as usize, boid.position.z as usize, config.size, col);
+
+    let mut d = boid.velocity;
+    d.normalize();
+    let head = boid.position + d;
+    put_pixel(buffer, head.x as usize, head.z as usize, config.size, col);
 }
 
-fn draw_boid_top(buffer: &mut Vec<u32>, config: &utils::Config, boid: &flock3::Boid) {
-    if  boid.position.x<2.0 || boid.position.y<2.0 || boid.position.z<0.0 ||
-        boid.position.x>=config.size as f32 - 2.0 || boid.position.y>=config.size as f32 - 2.0
-        {return;}
+// fn draw_boid_top(buffer: &mut Vec<u32>, config: &utils::Config, boid: &flock3::Boid) {
+//     if  boid.position.x<2.0 || boid.position.y<2.0 || boid.position.z<0.0 ||
+//         boid.position.x>=config.size as f32 - 2.0 || boid.position.y>=config.size as f32 - 2.0
+//         {return;}
 
-    let gray = boid.position.z * (255.0 / config.size as f32);
-    let gray = gray as u32;
-    let col = (gray << 16) + (gray << 8) + gray;
+//     let gray = boid.position.z * (255.0 / config.size as f32);
+//     let gray = gray as u32;
+//     let col = (gray << 16) + (gray << 8) + gray;
 
-    buffer[boid.position.y as usize * config.size + boid.position.x as usize] = col;
-}
+//     let idx = boid.position.y as usize * config.size + boid.position.x as usize;
+
+//     buffer[idx] = max(buffer[idx], col);
+// }
 
 fn main() {
     let config = utils::Config::parse();
@@ -54,7 +60,7 @@ fn main() {
         buffer = vec![0; config.size * config.size];
 
         for b in &flock.boids {
-            draw_boid_top(&mut buffer, &config, &b);
+            draw_boid(&mut buffer, &config, &b);
         }
         flock.update(&config);
         window.update_with_buffer(&buffer, config.size, config.size).expect("Window update failed!");
